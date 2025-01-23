@@ -88,39 +88,122 @@
     });
     
     
-    // Causes carousel
-    $(".causes-carousel").owlCarousel({
-        autoplay: true,
-        animateIn: 'slideInDown',
-        animateOut: 'slideOutDown',
-        items: 1,
-        smartSpeed: 450,
-        dots: false,
-        loop: true,
-        responsive: {
-            0:{
-                items:1
-            },
-            576:{
-                items:1
-            },
-            768:{
-                items:2
-            },
-            992:{
-                items:3
-            }
+    // Beneficiaries Carousel Implementation
+(function($) {
+    "use strict";
+    
+    // Carousel Configuration and Setup
+    const initBeneficiariesCarousel = () => {
+        const $carousel = $(".beneficiaries-carousel");
+        const $container = $carousel.find(".carousel-container");
+        const $cards = $carousel.find(".beneficiary-card");
+        const cardWidth = $cards.first().outerWidth(true);
+        const visibleCards = 3;
+        let currentIndex = 0;
+        
+        // Initialize first three cards as active
+        $cards.slice(0, visibleCards).addClass('active');
+        
+        // Set initial container width and cards position
+        // $container.css({
+        //     width: `${cardWidth * $cards.length}px`,
+        //     display: 'flex',
+        //     transition: 'transform 0.5s ease-in-out'
+        // });
+        
+        // Navigation function
+        const slideTo = (index) => {
+            if (index < 0 || index > $cards.length - visibleCards) return;
+            
+            currentIndex = index;
+            const translateX = -currentIndex * cardWidth;
+            
+            // Move the container
+            $container.css('transform', `translateX(${translateX}px)`);
+            
+            // Update active states
+            $cards.removeClass('active');
+            $cards.slice(currentIndex, currentIndex + visibleCards).addClass('active');
+            
+            // Update indicators
+            updateIndicators();
+        };
+        
+        // Navigation Arrows Event Handlers
+        $carousel.find('.carousel-arrow.prev').on('click', () => {
+            slideTo(currentIndex - 1);
+        });
+        
+        $carousel.find('.carousel-arrow.next').on('click', () => {
+            slideTo(currentIndex + 1);
+        });
+        
+        // Setup Indicators
+        const totalSlides = $cards.length - visibleCards + 1;
+        const $indicators = $carousel.find('.carousel-indicators');
+        
+        // Create indicators dynamically
+        for (let i = 0; i < totalSlides; i++) {
+            $indicators.append(
+                $('<button>')
+                    .addClass('indicator')
+                    .attr({
+                        'aria-label': `Go to slide ${i + 1}`,
+                        'data-slide': i
+                    })
+            );
         }
+        
+        // Update indicators function
+        const updateIndicators = () => {
+            $indicators.find('.indicator').removeClass('active')
+                .eq(currentIndex).addClass('active');
+        };
+        
+        // Initialize first indicator as active
+        updateIndicators();
+        
+        // Indicator click handlers
+        $indicators.on('click', '.indicator', function() {
+            const index = $(this).data('slide');
+            slideTo(index);
+        });
+        
+        // Auto-slide functionality
+        let autoSlideTimer;
+        
+        const startAutoSlide = () => {
+            autoSlideTimer = setInterval(() => {
+                const nextIndex = (currentIndex + 1) % totalSlides;
+                slideTo(nextIndex);
+            }, 3000); // Slide every 3 seconds
+        };
+        
+        const stopAutoSlide = () => {
+            clearInterval(autoSlideTimer);
+        };
+        
+        // Start auto-sliding
+        // startAutoSlide();
+        
+        // Pause on hover
+        $carousel.hover(stopAutoSlide, startAutoSlide);
+        
+        // Update on window resize
+        $(window).on('resize', _.debounce(() => {
+            const newCardWidth = $cards.first().outerWidth(true);
+            if (newCardWidth !== cardWidth) {
+                location.reload();
+            }
+        }, 250));
+    };
+    
+    // Initialize when document is ready
+    $(document).ready(function() {
+        initBeneficiariesCarousel();
     });
     
-    
-    // Causes progress
-    $('.causes-progress').waypoint(function () {
-        $('.progress .progress-bar').each(function () {
-            $(this).css("width", $(this).attr("aria-valuenow") + '%');
-        });
-    }, {offset: '80%'});
-    
+})(jQuery);
     
     // Facts counter
     $('[data-toggle="counter-up"]').counterUp({
