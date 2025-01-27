@@ -92,110 +92,91 @@
 (function($) {
     "use strict";
     
-    // Carousel Configuration and Setup
     const initBeneficiariesCarousel = () => {
         const $carousel = $(".beneficiaries-carousel");
         const $container = $carousel.find(".carousel-container");
         const $cards = $carousel.find(".beneficiary-card");
-        const cardWidth = $cards.first().outerWidth(true);
         const visibleCards = 3;
         let currentIndex = 0;
         
-        // Initialize first three cards as active
-        $cards.slice(0, visibleCards).addClass('active');
-        
-        // Set initial container width and cards position
-        // $container.css({
-        //     width: `${cardWidth * $cards.length}px`,
-        //     display: 'flex',
-        //     transition: 'transform 0.5s ease-in-out'
-        // });
+        // Initial setup
+        $container.css({
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '30px'
+        });
+
+        // Function to update visible cards with slide effect
+        const updateVisibleCards = (index, direction) => {
+            $cards.hide().removeClass('active');
+            
+            // Show three cards starting from the current index
+            for(let i = 0; i < visibleCards; i++) {
+                let cardIndex = (index + i) % $cards.length;
+                if(cardIndex < 0) cardIndex = $cards.length + cardIndex;
+                
+                const $card = $cards.eq(cardIndex);
+                const startPosition = direction === 'right' ? 100 : -100;
+                
+                $card
+                    .show()
+                    .addClass('active')
+                    .css({
+                        transform: `translateX(${startPosition}px)`,
+                        opacity: 0
+                    })
+                    .animate({
+                        transform: 'translateX(0)',
+                        opacity: 1
+                    }, 400);
+            }
+        };
+
+        // Initialize first three cards
+        updateVisibleCards(0, 'right');
         
         // Navigation function
-        const slideTo = (index) => {
-            if (index < 0 || index > $cards.length - visibleCards) return;
-            
+        const slideTo = (index, direction) => {
             currentIndex = index;
-            const translateX = -currentIndex * cardWidth;
             
-            // Move the container
-            $container.css('transform', `translateX(${translateX}px)`);
+            // Handle wrapping
+            if(currentIndex >= $cards.length) {
+                currentIndex = 0;
+            }
+            if(currentIndex < 0) {
+                currentIndex = $cards.length - 1;
+            }
             
-            // Update active states
-            $cards.removeClass('active');
-            $cards.slice(currentIndex, currentIndex + visibleCards).addClass('active');
-            
-            // Update indicators
-            updateIndicators();
+            updateVisibleCards(currentIndex, direction);
         };
+        
+        // Auto-slide functionality
+        const startAutoSlide = () => {
+            return setInterval(() => {
+                slideTo(currentIndex + 1, 'right');
+            }, 2000); // Slide every 2 seconds
+        };
+        
+        let autoSlideTimer = startAutoSlide();
+        
+        // Pause on hover
+        $carousel.hover(
+            () => clearInterval(autoSlideTimer),
+            () => autoSlideTimer = startAutoSlide()
+        );
         
         // Navigation Arrows Event Handlers
         $carousel.find('.carousel-arrow.prev').on('click', () => {
-            slideTo(currentIndex - 1);
+            clearInterval(autoSlideTimer);
+            slideTo(currentIndex - 1, 'left');
+            autoSlideTimer = startAutoSlide();
         });
         
         $carousel.find('.carousel-arrow.next').on('click', () => {
-            slideTo(currentIndex + 1);
-        });
-        
-        // Setup Indicators
-        const totalSlides = $cards.length - visibleCards + 1;
-        const $indicators = $carousel.find('.carousel-indicators');
-        
-        // Create indicators dynamically
-        for (let i = 0; i < totalSlides; i++) {
-            $indicators.append(
-                $('<button>')
-                    .addClass('indicator')
-                    .attr({
-                        'aria-label': `Go to slide ${i + 1}`,
-                        'data-slide': i
-                    })
-            );
-        }
-        
-        // Update indicators function
-        const updateIndicators = () => {
-            $indicators.find('.indicator').removeClass('active')
-                .eq(currentIndex).addClass('active');
-        };
-        
-        // Initialize first indicator as active
-        updateIndicators();
-        
-        // Indicator click handlers
-        $indicators.on('click', '.indicator', function() {
-            const index = $(this).data('slide');
-            slideTo(index);
-        });
-        
-        // Auto-slide functionality
-        let autoSlideTimer;
-        
-        const startAutoSlide = () => {
-            autoSlideTimer = setInterval(() => {
-                const nextIndex = (currentIndex + 1) % totalSlides;
-                slideTo(nextIndex);
-            }, 3000); // Slide every 3 seconds
-        };
-        
-        const stopAutoSlide = () => {
             clearInterval(autoSlideTimer);
-        };
-        
-        // Start auto-sliding
-        // startAutoSlide();
-        
-        // Pause on hover
-        $carousel.hover(stopAutoSlide, startAutoSlide);
-        
-        // Update on window resize
-        $(window).on('resize', _.debounce(() => {
-            const newCardWidth = $cards.first().outerWidth(true);
-            if (newCardWidth !== cardWidth) {
-                location.reload();
-            }
-        }, 250));
+            slideTo(currentIndex + 1, 'right');
+            autoSlideTimer = startAutoSlide();
+        });
     };
     
     // Initialize when document is ready
